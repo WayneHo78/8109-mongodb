@@ -121,3 +121,138 @@ db.listingsAndReviews.find({
     "address.country":"Hong Kong",
 }).count();
 ```
+
+### Find by element in array
+   Find all listings that microwave in its array amenities
+   ```
+   db.listingsAndReviews.find({
+    amenities:"Microwave"
+   }, {
+    name: 1,
+    amenities: 1
+   })
+   ```
+
+   ### Find by more than 1 element in an array
+   Find all listings that have washing machine and dryer
+   ```
+   db.listingsAndReviews.find({
+    amenities:{
+        $all:["Washer", "Dryer"]
+    }
+   }, {
+    name: 1,
+    amenities: 1
+   })
+   ```
+
+   ### Find by either/or in array
+   Find all listings that have either TV or Cable
+   ```
+   db.listingsAndReviews.find({
+    amenities: {
+        $in:["TV", "Cable TV"]
+    }
+   }, {
+    name: 1,
+    amenities: 1
+   })
+   ```
+
+   ### Find by key in an array of objects
+   ```
+   db.listingsAndReviews.find({
+    'reviews':{
+        $elemMatch : {
+            'reviewer_name':'Davi'
+        }
+    }
+   }, {
+    name: 1,
+    "reviews.$":1
+   })
+   ```
+   The `$` will refer to the object selected by `$elemMatch`.
+
+### Find by dates
+In programming world, we always work with ISO dates. The `YYYY-MM-DD` is the ISO date format.
+We use the `ISODate` function to create a new date in Mongo.
+
+Example: find all the listings where their first reviewed date is before 2019
+```
+db.listingsAndReviews.find({
+    first_review: {
+        $lte: ISODate("2018-12-30")
+    }
+}, {
+    name: 1,
+    first_review: 1
+})
+```
+
+### Find by string patterns
+
+So if we do keyword search in the fields, then we do need match by string patterns
+```
+db.listingsAndReviews.find({
+    description: {
+        $regex:"Spacious",
+        $options:"i"
+    }
+}, {
+    name: 1,
+    description: 1
+})
+```
+
+### Find by ObjectId
+All Mongo documents will have an `_id` key. It stores the unique ID of the document and it's always better
+to use an `ObjectId` to store it.
+```
+use sample_mflix
+db.movies.find({
+    _id: ObjectId("573a1391f29313caabcd6d40")
+})
+```
+
+### Find listings from Brazil or Canada
+```
+db.listingsAndReviews.find({
+    $or:[
+            {
+                "address.country":"Brazil"
+            },
+            {
+                "address.country":"Canada"
+            }
+    ]
+}, {
+    name:1,
+    "address.country": 1
+})
+```
+
+Find all listings from Brazil or Canada.
+If in Brazil, we want a house.
+If in Canada, we want an aparment
+```
+db.listingsAndReviews.find({
+    $or:[
+            {
+                "address.country":"Brazil",
+                "property_type":"House"
+            },
+            {
+                "address.country":"Canada",
+                "property_type":"Apartment",
+                "beds":{
+                    $gte: 2
+                }
+            }
+    ]
+}, {
+    name:1,
+    "address.country": 1,
+    "beds": 1
+})
+```

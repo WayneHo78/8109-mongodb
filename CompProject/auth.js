@@ -1,4 +1,3 @@
-// auth.js
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -6,11 +5,11 @@ const jwt = require('jsonwebtoken');
 module.exports = (app, db) => {
     // User Registration
     app.post('/users', async (req, res) => {
-        const { email, password } = req.body;
+        const { name, email, password } = req.body;
 
         // Basic validation
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Name, email, and password are required' });
         }
 
         // Hash the password
@@ -18,8 +17,9 @@ module.exports = (app, db) => {
 
         try {
             const result = await db.collection('users').insertOne({
+                name, // Save the name
                 email,
-                password: hashedPassword
+                password: hashedPassword // Store the hashed password
             });
 
             res.status(201).json({ message: 'User created successfully', userId: result.insertedId });
@@ -55,6 +55,46 @@ module.exports = (app, db) => {
             res.status(500).json({ error: 'Internal server error' });
         }
     });
+    // Retrieve user profile by ID
+app.get('/users/:id', async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+        const user = await db.collection('users').findOne({ _id: new ObjectId(userId) }, { projection: { password: 0 } }); // Exclude password from the result
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Delete a user by ID
+app.delete('/users/:id', async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+        // Validate ObjectId format
+        if (!ObjectId.isValid(userId)) {
+            return res.status(400).json({ error: 'Invalid ID format' });
+        }
+
+        const result = await db.collection('users').deleteOne({ _id: new ObjectId(userId) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
     // Middleware for protecting routes
     const verifyToken = (req, res, next) => {
